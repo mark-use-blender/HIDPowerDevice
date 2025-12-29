@@ -1,17 +1,23 @@
-#include <HIDPowerDevice.h>
+#include "HIDPowerDevice.h"
 
 #define MINUPDATEINTERVAL   26
 #define CHGDCHPIN           4
+#define CHGINDIPINR         9
+#define CHGINDIPING         8
+#define CHGENPIN            7
 #define RUNSTATUSPIN        5
 #define COMMLOSTPIN         10
-#define BATTSOCPIN          A7
+#define BATTSOCPIN          A0
 
 int iIntTimer=0;
 
+int chgEN = 1;
+int chgFIN = 0;
+int chgINPROG = 0;
 
 // String constants 
-const char STRING_DEVICECHEMISTRY[] PROGMEM = "PbAc";
-const char STRING_OEMVENDOR[] PROGMEM = "MyCoolUPS";
+const char STRING_DEVICECHEMISTRY[] PROGMEM = "LiFePO4";
+const char STRING_OEMVENDOR[] PROGMEM = "studioMEAT39UPS";
 const char STRING_SERIAL[] PROGMEM = "UPS10"; 
 
 const byte bDeviceChemistry = IDEVICECHEMISTRY;
@@ -37,12 +43,12 @@ byte iAudibleAlarmCtrl = 2; // 1 - Disabled, 2 - Enabled, 3 - Muted
 
 // Parameters for ACPI compliancy
 const byte iDesignCapacity = 100;
-byte iWarnCapacityLimit = 10; // warning at 10% 
-byte iRemnCapacityLimit = 5; // low at 5% 
+byte iWarnCapacityLimit = 50; // warning at 10% 
+byte iRemnCapacityLimit = 10; // low at 5% 
 const byte bCapacityGranularity1 = 1;
 const byte bCapacityGranularity2 = 1;
 byte iFullChargeCapacity = 100;
-
+bool bNeedTopUp = 1;
 byte iRemaining =0, iPrevRemaining=0;
 
 int iRes=0;
@@ -59,10 +65,14 @@ void setup() {
   
   // Used for debugging purposes. 
   PowerDevice.setOutput(Serial);
-  
+  //pinMode(BATTSOCPIN, INPUT); // ground this pin to simulate power failure.
   pinMode(CHGDCHPIN, INPUT_PULLUP); // ground this pin to simulate power failure. 
   pinMode(RUNSTATUSPIN, OUTPUT);  // output flushing 1 sec indicating that the arduino cycle is running. 
   pinMode(COMMLOSTPIN, OUTPUT); // output is on once communication is lost with the host, otherwise off.
+  pinMode(CHGENPIN,OUTPUT);
+  pinMode(CHGINDIPINR,INPUT);
+  pinMode(CHGINDIPING,INPUT); 
+
 
 
   PowerDevice.setFeature(HID_PD_PRESENTSTATUS, &iPresentStatus, sizeof(iPresentStatus));
@@ -92,7 +102,7 @@ void setup() {
   PowerDevice.setFeature(HID_PD_CPCTYGRANULARITY1, &bCapacityGranularity1, sizeof(bCapacityGranularity1));
   PowerDevice.setFeature(HID_PD_CPCTYGRANULARITY2, &bCapacityGranularity2, sizeof(bCapacityGranularity2));
 
-  uint16_t year = 2024, month = 10, day = 12;
+  uint16_t year = 2025, month = 7, day = 30;
   iManufacturerDate = (year - 1980)*512 + month*32 + day; // from 4.2.6 Battery Settings in "Universal Serial Bus Usage Tables for HID Power Devices"
   PowerDevice.setFeature(HID_PD_MANUFACTUREDATE, &iManufacturerDate, sizeof(iManufacturerDate));
 }
@@ -101,19 +111,33 @@ void loop() {
   
   
   //*********** Measurements Unit ****************************
-  bool bCharging = digitalRead(CHGDCHPIN);
-  bool bACPresent = bCharging;    // TODO - replace with sensor
-  bool bDischarging = !bCharging; // TODO - replace with sensor
+  //digitalWrite(CHGENPIN,HIGH);
+  bool bChargFin = analogRead(CHGINDIPING)> 200;
+  bool bCharging = analogRead(CHGINDIPINR)> 200;
+  bool bACPresent = digitalRead(CHGDCHPIN);    // TODO - replace with sensor
+  bool bDischarging = !bACPresent; // TODO - replace with sensor
   int iBattSoc = analogRead(BATTSOCPIN);       // TODO - this is for debug only. Replace with charge estimation
-
-  iRemaining = (byte)(round((float)iFullChargeCapacity*iBattSoc/1024));
+  iRemaining = (byte)(round((float)iFullChargeCapacity*iBattSoc/724));
   iRunTimeToEmpty = (uint16_t)round((float)iAvgTimeToEmpty*iRemaining/iFullChargeCapacity);
 
   // Charging
   iPresentStatus.Charging = bCharging;
   iPresentStatus.ACPresent = bACPresent;
   iPresentStatus.FullyCharged = (iRemaining == iFullChargeCapacity);
-    
+  if (bACPresent&&bNeedTopUp){
+    digitalWrite(CHGENPIN,HIGH);
+    //bNeedTopUp = false;
+
+    }
+
+  
+  if ((bChargFin&&iBattSoc>600)||bDischarging){
+    digitalWrite(CHGENPIN,LOW);
+    bNeedTopUp = false;
+    }
+  if (iBattSoc<600){
+    bNeedTopUp = true;
+    }
   // Discharging
   if(bDischarging) {
     iPresentStatus.Discharging = 1;
@@ -186,5 +210,6 @@ void loop() {
   Serial.println(iRemaining);
   Serial.println(iRunTimeToEmpty);
   Serial.println(iRes);
+  Serial.println(analogRead(BATTSOCPIN));
   
 }
