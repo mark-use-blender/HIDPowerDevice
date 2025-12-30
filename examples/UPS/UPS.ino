@@ -32,8 +32,8 @@ byte bCapacityMode = 2;  // units are in %%
 const uint16_t iConfigVoltage = 1380;
 uint16_t iVoltage =1300, iPrevVoltage = 0;
 uint16_t iRunTimeToEmpty = 0, iPrevRunTimeToEmpty = 0;
-uint16_t iAvgTimeToFull = 7200;
-uint16_t iAvgTimeToEmpty = 7200;
+uint16_t iAvgTimeToFull = 9936;
+uint16_t iAvgTimeToEmpty = 9936;
 uint16_t iRemainTimeLimit = 600;
 int16_t  iDelayBe4Reboot = -1;
 int16_t  iDelayBe4ShutDown = -1;
@@ -53,6 +53,9 @@ byte iRemaining =0, iPrevRemaining=0;
 
 int iRes=0;
 
+const char* boolToString(bool val) {
+  return val ? "TRUE" : "FALSE";
+}
 
 void setup() {
 
@@ -121,7 +124,7 @@ void loop() {
   iRunTimeToEmpty = (uint16_t)round((float)iAvgTimeToEmpty*iRemaining/iFullChargeCapacity);
 
   // Charging
-  iPresentStatus.Charging = bCharging;
+  iPresentStatus.Charging = bNeedTopUp;
   iPresentStatus.ACPresent = bACPresent;
   iPresentStatus.FullyCharged = (iRemaining == iFullChargeCapacity);
   if (bACPresent&&bNeedTopUp){
@@ -190,6 +193,7 @@ void loop() {
 
   if((iPresentStatus != iPreviousStatus) || (iRemaining != iPrevRemaining) || (iRunTimeToEmpty != iPrevRunTimeToEmpty) || (iIntTimer>MINUPDATEINTERVAL) ) {
 
+    /*
     PowerDevice.sendReport(HID_PD_REMAININGCAPACITY, &iRemaining, sizeof(iRemaining));
     if(bDischarging) PowerDevice.sendReport(HID_PD_RUNTIMETOEMPTY, &iRunTimeToEmpty, sizeof(iRunTimeToEmpty));
     iRes = PowerDevice.sendReport(HID_PD_PRESENTSTATUS, &iPresentStatus, sizeof(iPresentStatus));
@@ -199,7 +203,7 @@ void loop() {
     }
     else
       digitalWrite(COMMLOSTPIN, LOW);
-        
+    */  
     iIntTimer = 0;
     iPreviousStatus = iPresentStatus;
     iPrevRemaining = iRemaining;
@@ -207,9 +211,16 @@ void loop() {
   }
   
 
-  Serial.println(iRemaining);
-  Serial.println(iRunTimeToEmpty);
-  Serial.println(iRes);
-  Serial.println(analogRead(BATTSOCPIN));
+  Serial.print(iRemaining);
+  Serial.print(",");
+  Serial.print(iRunTimeToEmpty);
+  Serial.print(",");
+  Serial.print(boolToString(bACPresent));
+  Serial.print(",");
+  Serial.print(boolToString(bNeedTopUp));
+  Serial.print(",");
+  Serial.print(iRes);
+  Serial.print(",");
+  Serial.println(iBattSoc);
   
 }
