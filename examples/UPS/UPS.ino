@@ -193,7 +193,7 @@ void loop() {
 
   if((iPresentStatus != iPreviousStatus) || (iRemaining != iPrevRemaining) || (iRunTimeToEmpty != iPrevRunTimeToEmpty) || (iIntTimer>MINUPDATEINTERVAL) ) {
 
-    /*
+    
     PowerDevice.sendReport(HID_PD_REMAININGCAPACITY, &iRemaining, sizeof(iRemaining));
     if(bDischarging) PowerDevice.sendReport(HID_PD_RUNTIMETOEMPTY, &iRunTimeToEmpty, sizeof(iRunTimeToEmpty));
     iRes = PowerDevice.sendReport(HID_PD_PRESENTSTATUS, &iPresentStatus, sizeof(iPresentStatus));
@@ -203,7 +203,7 @@ void loop() {
     }
     else
       digitalWrite(COMMLOSTPIN, LOW);
-    */  
+      
     iIntTimer = 0;
     iPreviousStatus = iPresentStatus;
     iPrevRemaining = iRemaining;
