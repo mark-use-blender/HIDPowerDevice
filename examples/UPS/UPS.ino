@@ -115,12 +115,15 @@ void loop() {
   
   //*********** Measurements Unit ****************************
   //digitalWrite(CHGENPIN,HIGH);
-  bool bChargFin = analogRead(CHGINDIPING)> 200;
-  bool bCharging = analogRead(CHGINDIPINR)> 200;
+  char dest[500];
+  int iChargFin = analogRead(CHGINDIPING);
+  int iCharging = analogRead(CHGINDIPINR);
+  bool bChargFin = iChargFin> 478;
+  bool bCharging = iCharging> 200;
   bool bACPresent = digitalRead(CHGDCHPIN);    // TODO - replace with sensor
   bool bDischarging = !bACPresent; // TODO - replace with sensor
   int iBattSoc = analogRead(BATTSOCPIN);       // TODO - this is for debug only. Replace with charge estimation
-  iRemaining = (byte)(round((float)iFullChargeCapacity*iBattSoc/724));
+  iRemaining = (byte)(round((float)iFullChargeCapacity*iBattSoc/850));
   iRunTimeToEmpty = (uint16_t)round((float)iAvgTimeToEmpty*iRemaining/iFullChargeCapacity);
 
   // Charging
@@ -134,7 +137,7 @@ void loop() {
     }
 
   
-  if ((bChargFin&&iBattSoc>600)||bDischarging){
+  if ((bChargFin&&iBattSoc>700)||bDischarging){
     digitalWrite(CHGENPIN,LOW);
     bNeedTopUp = false;
     }
@@ -209,8 +212,14 @@ void loop() {
     iPrevRemaining = iRemaining;
     iPrevRunTimeToEmpty = iRunTimeToEmpty;
   }
-  
+  sprintf(dest, "%s%d%s%d%s%s%s%s%s%d%s%d%s%d%s%d%s%d%s%d%s%s%s%s%s%d%s%d%s%d%s%d%s", "~~",iRemaining,",",iRunTimeToEmpty,",",boolToString(bACPresent),",",boolToString(bNeedTopUp),",",iRes,",",iBattSoc,",",iChargFin,",",iCharging,"~~",iRemaining,",",iRunTimeToEmpty,",",boolToString(bACPresent),",",boolToString(bNeedTopUp),",",iRes,",",iBattSoc,",",iChargFin,",",iCharging,"~~");
+  //sprintf(dest, "%s%d", "~~",iRemaining);
 
+  Serial.println(dest);
+  Serial.println(dest);
+  //Serial.println("~~"+iRemaining);
+  /*
+  Serial.print("~~");
   Serial.print(iRemaining);
   Serial.print(",");
   Serial.print(iRunTimeToEmpty);
@@ -221,6 +230,27 @@ void loop() {
   Serial.print(",");
   Serial.print(iRes);
   Serial.print(",");
-  Serial.println(iBattSoc);
-  
+  Serial.print(iBattSoc);
+  Serial.print(",");
+  Serial.print(iChargFin);
+  Serial.print(",");
+  Serial.print(iCharging);
+  Serial.print("~~");
+  Serial.print(iRemaining);
+  Serial.print(",");
+  Serial.print(iRunTimeToEmpty);
+  Serial.print(",");
+  Serial.print(boolToString(bACPresent));
+  Serial.print(",");
+  Serial.print(boolToString(bNeedTopUp));
+  Serial.print(",");
+  Serial.print(iRes);
+  Serial.print(",");
+  Serial.print(iBattSoc);
+  Serial.print(",");
+  Serial.print(iChargFin);
+  Serial.print(",");
+  Serial.print(iCharging);
+  Serial.print("~~");
+  */
 }
